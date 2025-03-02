@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import dynamic from 'next/dynamic';
 
 // 使用动态导入避免循环依赖
-const BookmarkPrompt = dynamic(() => import('@/components/ui/bookmark-prompt').then(mod => mod.BookmarkPrompt), {
+const BookmarkPrompt = dynamic(() => import('@/components/ui/bookmark-prompt'), {
   ssr: false,
 });
 
@@ -40,6 +40,14 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("bookmark-prompted", "true");
   };
 
+  const handleTemporaryClose = () => {
+    setBookmarkPromptOpen(false);
+  };
+
+  const handlePermanentClose = () => {
+    closeBookmarkPrompt();
+  };
+
   return (
     <BookmarkContext.Provider
       value={{
@@ -49,7 +57,12 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      {bookmarkPromptOpen && <BookmarkPrompt isOpen={true} onClose={closeBookmarkPrompt} />}
+      {bookmarkPromptOpen && (
+        <BookmarkPrompt 
+          onTemporaryClose={handleTemporaryClose} 
+          onPermanentClose={handlePermanentClose} 
+        />
+      )}
     </BookmarkContext.Provider>
   );
 }
