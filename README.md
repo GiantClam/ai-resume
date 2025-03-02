@@ -1,6 +1,6 @@
 # AI Resume
 
-AI Resume is a web application that helps automate HR processes such as resume screening, interview question generation, and interview summary creation. The application consists of a Next.js frontend and a Go backend.
+Through AI assist recruiters in screening resumes according to different industry standards and job requirements, generating targeted interview questions, and summarizing interviews.
 
 ## Project Structure
 
@@ -122,4 +122,4 @@ For local development, create your own `.env` files based on the `.example` temp
 
 ## Contact
 
-[Add contact information here] 
+[Add contact information here]
