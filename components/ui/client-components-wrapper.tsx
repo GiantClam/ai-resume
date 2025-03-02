@@ -1,0 +1,1 @@
+"use client"; import PageDwellTimeListener from "./page-dwell-time-listener"; import BookmarkPromptContainer from "./bookmark-prompt-container"; export default function ClientComponentsWrapper() { return (<><PageDwellTimeListener /><BookmarkPromptContainer /></>); }

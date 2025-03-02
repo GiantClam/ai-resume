@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  frontend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8080
+    depends_on:
+      - backend
+    volumes:
+      - ./app:/app/app
+      - ./components:/app/components
+      - ./lib:/app/lib
+      - ./public:/app/public
+      - ./node_modules:/app/node_modules
+
+  backend:
+    build: 
+      context: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - CORS_ORIGIN=http://localhost:3000
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION}
+      - PORT=8080
+    volumes:
+      - ./backend:/app
+      # 注意：需要在运行时提供服务账号凭证
+      # 方式 1：挂载凭证文件 (开发环境)
+      # - ./path/to/your-credentials.json:/app/credentials.json
+      # 方式 2：使用环境变量 (推荐生产环境) 
+      # - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json 

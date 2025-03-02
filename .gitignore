@@ -1,0 +1,69 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Go backend
+backend/tmp
+# Exclude uploads content but keep the directory
+backend/uploads/*
+!backend/uploads/.gitkeep
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+__debug_bin
+
+# Google Cloud credentials
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+
+# Backup files
+backup_files/
+cleanup_logs/
+*.bak
+*.old
+*.backup
+*_old.*
+*_new.*
+*.formatted.*
+
+# Temporary files and directories
+tmp/
+temp/
+.cache/ 
