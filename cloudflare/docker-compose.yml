@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  # Go后端服务
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8180:8180"
+    volumes:
+      - ../backend/uploads:/app/uploads
+    environment:
+      - GIN_MODE=release
+      - PORT=8180
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://resume-ai.net}
+    networks:
+      - app-network
+
+  # Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel run
+    volumes:
+      - ~/.cloudflared:/etc/cloudflared
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge 

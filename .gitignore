@@ -66,4 +66,21 @@ cleanup_logs/
 # Temporary files and directories
 tmp/
 temp/
-.cache/ 
+.cache/
+
+# System files
+.DS_Store
+*/.DS_Store
+Thumbs.db
+
+# Temporary directories
+cleanup_logs/
+backup_files/
+temp/
+tmp/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo 
