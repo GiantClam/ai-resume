@@ -16,7 +16,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -o reumeai .
 
 # Final stage
 FROM alpine:latest
@@ -36,7 +36,7 @@ RUN mkdir -p /app/uploads && chown -R appuser:appuser /app
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /build/main .
+COPY --from=builder /build/reumeai .
 
 # Copy any additional required files (if needed)
 # COPY configs/ configs/
@@ -55,4 +55,4 @@ HEALTHCHECK --interval=30s --timeout=3s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8180/health || exit 1
 
 # Run the application
-CMD ["./main"] 
+CMD ["./reumeai"] 
