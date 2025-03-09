@@ -6,7 +6,8 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV !== 'production',
   },
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.resume-ai.net';
+    // 硬编码默认值，避免任何环境变量问题
+    const apiUrl = 'https://api.resume-ai.net';
     return [
       {
         source: '/api/:path*',
