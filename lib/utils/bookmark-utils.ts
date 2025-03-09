@@ -62,4 +62,35 @@ export function setUserConfirmedBookmark(value: boolean = true): void {
   } catch (err) {
     console.log('[Bookmark] 保存用户确认状态出错', err);
   }
+}
+
+/**
+ * 尝试触发浏览器的收藏功能
+ * 注意：由于浏览器安全限制，这个方法的成功率很低，主要是作为辅助尝试
+ */
+export function tryTriggerBookmark(): void {
+  try {
+    if (typeof window === 'undefined') return;
+    
+    // 获取平台信息
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    
+    // 创建一个模拟键盘事件
+    const keyEvent = new KeyboardEvent('keydown', {
+      key: 'd',
+      code: 'KeyD',
+      keyCode: 68,
+      which: 68,
+      metaKey: isMac, // Mac 使用 Command 键
+      ctrlKey: !isMac, // 其他操作系统使用 Ctrl 键
+      bubbles: true
+    });
+    
+    // 尝试触发事件
+    document.dispatchEvent(keyEvent);
+    
+    console.log('[Bookmark] 尝试触发收藏快捷键');
+  } catch (err) {
+    console.log('[Bookmark] 触发收藏快捷键失败', err);
+  }
 } 
