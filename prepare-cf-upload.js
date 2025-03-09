@@ -9,13 +9,45 @@ if (fs.existsSync(distDir)) {
 }
 fs.mkdirSync(distDir);
 
-// 复制 .next/static 到 dist/_next/static
+// 复制 .next 中的所有静态资源到 dist 目录
+console.log('复制Next.js静态资源...');
+
+// 1. 复制所有 .next/static 到 dist/_next/static
 const staticDir = path.join(__dirname, '.next', 'static');
 const distStaticDir = path.join(distDir, '_next', 'static');
 fs.mkdirSync(path.join(distDir, '_next'), { recursive: true });
 fs.cpSync(staticDir, distStaticDir, { recursive: true });
 
-// 复制 public 目录到 dist
+// 2. 复制 .next/server/app 目录下的静态资源
+const serverStaticSrcDir = path.join(__dirname, '.next', 'server');
+if (fs.existsSync(serverStaticSrcDir)) {
+  // 复制CSS文件
+  const cssDir = path.join(distDir, '_next', 'static', 'css');
+  if (!fs.existsSync(cssDir)) {
+    fs.mkdirSync(cssDir, { recursive: true });
+  }
+  
+  // 寻找并复制所有CSS文件
+  const searchForCssFiles = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        searchForCssFiles(fullPath);
+      } else if (entry.name.endsWith('.css')) {
+        const destPath = path.join(cssDir, path.basename(entry.name));
+        fs.copyFileSync(fullPath, destPath);
+        console.log(`复制CSS文件: ${fullPath} -> ${destPath}`);
+      }
+    }
+  };
+  
+  searchForCssFiles(serverStaticSrcDir);
+}
+
+// 3. 复制 public 目录到 dist
 const publicDir = path.join(__dirname, 'public');
 if (fs.existsSync(publicDir)) {
   const files = fs.readdirSync(publicDir);
@@ -26,6 +58,23 @@ if (fs.existsSync(publicDir)) {
   });
 }
 
+// 创建 _headers 文件，指定正确的MIME类型
+fs.writeFileSync(path.join(distDir, '_headers'), `
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/_next/static/css/*
+  Content-Type: text/css
+
+/_next/static/js/*
+  Content-Type: application/javascript
+
+/_next/static/media/*
+  Cache-Control: public, max-age=31536000, immutable
+`);
+
 // 创建 _routes.json 文件
 const routesJson = {
   "version": 1,
@@ -34,37 +83,53 @@ const routesJson = {
 };
 fs.writeFileSync(path.join(distDir, '_routes.json'), JSON.stringify(routesJson, null, 2));
 
-// 从.next/server/app/page.html复制首页内容
-try {
-  if (fs.existsSync(path.join(__dirname, '.next', 'server', 'app', 'page.html'))) {
-    const homePageContent = fs.readFileSync(path.join(__dirname, '.next', 'server', 'app', 'page.html'), 'utf8');
-    fs.writeFileSync(path.join(distDir, 'index.html'), homePageContent);
-    console.log('已从Next.js构建中复制首页内容');
-  } else {
-    // 创建简单的静态首页
-    fs.writeFileSync(path.join(distDir, 'index.html'), `
+// 创建index.html文件，用于处理客户端路由
+fs.writeFileSync(path.join(distDir, 'index.html'), `
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resume AI</title>
-  <link rel="stylesheet" href="/_next/static/css/app.css">
+  <link rel="stylesheet" href="/_next/static/css/app.css" type="text/css">
+  <script>
+    // 基本的客户端路由初始化
+    window.dataLayer = window.dataLayer || [];
+    window.__NEXT_DATA__ = {
+      props: { pageProps: {} },
+      page: "/",
+      query: {},
+      buildId: "static-build",
+      assetPrefix: "",
+      runtimeConfig: {}
+    };
+  </script>
 </head>
 <body>
   <div id="__next">
     <h1>Resume AI 加载中...</h1>
     <p>请稍候，应用正在加载。如果页面长时间未加载，请刷新浏览器。</p>
   </div>
+  <script src="/_next/static/chunks/webpack.js"></script>
   <script src="/_next/static/chunks/main.js"></script>
 </body>
 </html>
-    `);
-    console.log('已创建静态首页');
+`);
+
+// 为所有可能的路由创建HTML入口点文件，确保客户端路由工作
+// 主要路由和子路由
+const routes = ['/', '/interview', '/interview/stream'];
+routes.forEach(route => {
+  if (route === '/') return; // 根路由已经创建
+  
+  const routeDir = path.join(distDir, route);
+  if (!fs.existsSync(routeDir)) {
+    fs.mkdirSync(routeDir, { recursive: true });
   }
-} catch (error) {
-  console.error('创建首页时出错:', error);
-}
+  
+  // 复制index.html到每个路由
+  fs.copyFileSync(path.join(distDir, 'index.html'), path.join(routeDir, 'index.html'));
+});
 
 // 创建ZIP文件
 console.log('创建ZIP文件...');
