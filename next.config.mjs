@@ -6,10 +6,11 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV !== 'production',
   },
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.resume-ai.net';
     return [
       {
         source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_API_URL + '/:path*', // 指向您的Go后端
+        destination: `${apiUrl}/:path*`, // 指向您的Go后端
       },
     ];
   },

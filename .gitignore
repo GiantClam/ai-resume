@@ -83,4 +83,9 @@ tmp/
 .idea/
 .vscode/
 *.swp
-*.swo 
+*.swo
+
+# 构建输出
+/dist
+dist.zip
+*.zip 
