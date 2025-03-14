@@ -2,9 +2,10 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import dynamic from 'next/dynamic';
+import eventBus, { EVENTS } from "@/lib/utils/event-bus";
 
 // 使用动态导入避免循环依赖
-const BookmarkPrompt = dynamic(() => import('@/components/ui/bookmark-prompt'), {
+const BookmarkPrompt = dynamic(() => import('@/components/ui/bookmark-prompt').then(mod => mod.default), {
   ssr: false,
 });
 
@@ -28,8 +29,24 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // 订阅事件总线上的显示收藏提示事件
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    console.log("[BookmarkProvider] 订阅SHOW_BOOKMARK_PROMPT事件");
+    const unsubscribe = eventBus.subscribe(EVENTS.SHOW_BOOKMARK_PROMPT, () => {
+      console.log("[BookmarkProvider] 收到显示收藏提示事件");
+      showBookmarkPrompt();
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const showBookmarkPrompt = () => {
     if (!bookmarkPromptShown) {
+      console.log("[BookmarkProvider] 打开收藏提示");
       setBookmarkPromptOpen(true);
     }
   };

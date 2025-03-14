@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/GiantClam/ai-resume/handlers"
+	"github.com/GiantClam/ai-resume/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,17 @@ func SetupRouter() *gin.Engine {
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization"}
 	r.Use(cors.New(config))
+
+	// 用户认证API
+	r.POST("/api/auth/register", handlers.Register)
+	r.POST("/api/auth/login", handlers.Login)
+
+	// 需要认证的API
+	auth := r.Group("/api")
+	auth.Use(middleware.AuthMiddleware())
+	{
+		auth.GET("/user/profile", handlers.GetUserProfile)
+	}
 
 	// 简历筛选API
 	r.POST("/api/resume/screen", handlers.ScreenResumes)

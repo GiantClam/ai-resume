@@ -4,9 +4,8 @@ import { useEffect } from "react";
 import eventBus, { EVENTS } from "@/lib/utils/event-bus";
 import { isBookmarked } from "@/lib/utils/bookmark-utils";
 
-// 强制开启测试模式，缩短等待时间
-const TEST_MODE = true;
-const WAIT_TIME = TEST_MODE ? 5000 : 60000; // 测试模式5秒，正式模式60秒
+// 开发环境缩短等待时间，生产环境使用正常时间
+const WAIT_TIME = process.env.NODE_ENV === 'development' ? 5000 : 60000; // 开发环境5秒，生产环境60秒
 
 // 用于测试：添加重置localStorage的全局函数
 if (typeof window !== "undefined") {
@@ -15,10 +14,11 @@ if (typeof window !== "undefined") {
     localStorage.removeItem("bookmark-prompted-permanent");
     localStorage.removeItem("user-confirmed-bookmarked");
     console.log("[DEBUG] localStorage中的bookmark相关标记已重置");
-    return `收藏提示已重置，页面刷新后将在${TEST_MODE ? "5秒" : "60秒"}内显示提示`;
+    console.log("[DEBUG] 请刷新页面以重新初始化组件");
+    return `收藏提示已重置，页面刷新后将在${process.env.NODE_ENV === 'development' ? "5秒" : "60秒"}内显示提示`;
   };
 
-  // 添加强制显示弹窗的函数（始终可用）
+  // 添加强制显示弹窗的函数（仅用于调试）
   (window as any).showBookmarkPrompt = () => {
     eventBus.publish(EVENTS.SHOW_BOOKMARK_PROMPT);
     return "已触发显示收藏提示";
@@ -32,19 +32,27 @@ export default function PageDwellTimeListener() {
 
     console.log("[PageDwellTimeListener] 组件已加载");
 
-    // 检查本地存储是否永久关闭了提示
+    // 首先检查用户是否已确认收藏
+    const userConfirmedBookmarked = localStorage.getItem("user-confirmed-bookmarked");
+    if (userConfirmedBookmarked === "true") {
+      console.log("[PageDwellTimeListener] 用户已确认收藏，不显示提示");
+      return; // 用户已确认收藏，不显示提示
+    }
+
+    // 然后检查本地存储是否已经提示过
+    const hasPrompted = localStorage.getItem("bookmark-prompted");
+    if (hasPrompted === "true") {
+      console.log("[PageDwellTimeListener] 已经提示过，不再显示");
+      return; // 已经提示过，不再显示
+    }
+
+    // 然后检查本地存储是否永久关闭了提示
     const permanentlyClosed = localStorage.getItem("bookmark-prompted-permanent");
     console.log("[PageDwellTimeListener] localStorage中bookmark-prompted-permanent值:", permanentlyClosed);
     
     if (permanentlyClosed === "true") {
       console.log("[PageDwellTimeListener] 用户已永久关闭提示，不再显示");
-      // 即使标记为永久关闭，我们仍然设置一个延迟定时器来尝试显示
-      // 这样可以确保用户至少有机会看到收藏提示
-      setTimeout(() => {
-        console.log("[PageDwellTimeListener] 尝试强制显示收藏提示");
-        eventBus.publish(EVENTS.SHOW_BOOKMARK_PROMPT);
-      }, WAIT_TIME * 2); // 等待时间加倍
-      return;
+      return; // 用户已永久关闭提示，不显示
     }
 
     let timer: NodeJS.Timeout;
@@ -58,37 +66,25 @@ export default function PageDwellTimeListener() {
           return;
         }
 
-        console.log(`[PageDwellTimeListener] 设置${TEST_MODE ? "5秒(测试模式)" : "60秒"}定时器`);
+        console.log(`[PageDwellTimeListener] 设置${process.env.NODE_ENV === 'development' ? "5秒(开发环境)" : "60秒"}定时器`);
         
         // 设置页面停留时间后显示收藏提示的定时器
         timer = setTimeout(() => {
-          console.log(`[PageDwellTimeListener] ${TEST_MODE ? "5秒" : "60秒"}已到，发布显示收藏提示事件`);
+          console.log(`[PageDwellTimeListener] ${process.env.NODE_ENV === 'development' ? "5秒" : "60秒"}已到，发布显示收藏提示事件`);
           eventBus.publish(EVENTS.SHOW_BOOKMARK_PROMPT);
-        }, WAIT_TIME); // 根据模式设置等待时间
+        }, WAIT_TIME); // 根据环境设置等待时间
       } catch (err) {
         console.error("[PageDwellTimeListener] 收藏状态检查出错", err);
-        // 出错时仍然显示提示
-        timer = setTimeout(() => {
-          console.log("[PageDwellTimeListener] 设置错误回退定时器，显示收藏提示");
-          eventBus.publish(EVENTS.SHOW_BOOKMARK_PROMPT);
-        }, WAIT_TIME);
       }
     };
 
     // 执行检查
     checkBookmarkStatus();
 
-    // 设置一个备用定时器，确保无论如何都会显示提示
-    const backupTimer = setTimeout(() => {
-      console.log("[PageDwellTimeListener] 备用定时器触发，显示收藏提示");
-      eventBus.publish(EVENTS.SHOW_BOOKMARK_PROMPT);
-    }, WAIT_TIME * 3); // 三倍等待时间
-
     // 清理函数
     return () => {
       console.log("[PageDwellTimeListener] 组件卸载，清理定时器");
       if (timer) clearTimeout(timer);
-      clearTimeout(backupTimer);
     };
   }, []);
 

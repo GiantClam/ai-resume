@@ -20,7 +20,16 @@ export default function BookmarkPrompt({ onTemporaryClose, onPermanentClose }: B
   }, []);
 
   const handleAlreadyBookmarked = () => {
+    // 记录用户已确认收藏和永久关闭提示
     setUserConfirmedBookmark(true);
+    
+    // 确保在localStorage中正确保存状态
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user-confirmed-bookmarked", "true");
+      localStorage.setItem("bookmark-prompted-permanent", "true");
+      console.log("[BookmarkPrompt] 已将用户收藏状态和永久关闭标记保存到localStorage");
+    }
+    
     onPermanentClose();
   };
 

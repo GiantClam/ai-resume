@@ -1,13 +1,13 @@
 'use client';
 
 import PageDwellTimeListener from '../components/ui/page-dwell-time-listener';
-import BookmarkPromptContainer from '../components/ui/bookmark-prompt-container';
+// BookmarkPromptContainer import removed as it's now handled by BookmarkProvider
 
 export default function ClientComponents() {
   return (
     <>
       <PageDwellTimeListener />
-      <BookmarkPromptContainer />
+      {/* BookmarkPromptContainer removed to avoid duplicate prompt rendering */}
     </>
   );
 }

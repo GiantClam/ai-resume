@@ -5,7 +5,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/GiantClam/ai-resume/models"
 	"github.com/GiantClam/ai-resume/routes"
+	"github.com/GiantClam/ai-resume/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -15,6 +17,18 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("警告: 未找到.env文件或无法加载")
 	}
+
+	// 初始化数据库连接
+	db, err := utils.InitDB()
+	if err != nil {
+		log.Fatalf("初始化数据库失败: %v", err)
+	}
+
+	// 自动迁移数据库模型
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		log.Fatalf("数据库迁移失败: %v", err)
+	}
+	log.Println("数据库迁移成功")
 
 	// 设置Gin模式
 	ginMode := os.Getenv("GIN_MODE")

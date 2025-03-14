@@ -15,6 +15,17 @@ export default function BookmarkPromptContainer() {
   const initRef = useRef(false);
 
   const handleShowPrompt = () => {
+    // 再次检查用户是否已确认收藏或永久关闭了提示
+    if (typeof window !== "undefined") {
+      const userConfirmedBookmarked = localStorage.getItem("user-confirmed-bookmarked");
+      const permanentlyClosed = localStorage.getItem("bookmark-prompted-permanent");
+      
+      if (userConfirmedBookmarked === "true" || permanentlyClosed === "true") {
+        console.log("[BookmarkPromptContainer] 用户已确认收藏或永久关闭提示，不显示");
+        return;
+      }
+    }
+    
     console.log("[BookmarkPromptContainer] 收到显示收藏提示事件");
     setIsVisible(true);
   };
@@ -26,11 +37,20 @@ export default function BookmarkPromptContainer() {
 
     console.log("[BookmarkPromptContainer] 组件已加载");
     
-    // 即使设置了永久关闭，我们也订阅事件，以支持手动触发
+    // 检查用户是否已确认收藏或永久关闭了提示
+    const userConfirmedBookmarked = localStorage.getItem("user-confirmed-bookmarked");
+    const permanentlyClosed = localStorage.getItem("bookmark-prompted-permanent");
+    
+    if (userConfirmedBookmarked === "true" || permanentlyClosed === "true") {
+      console.log("[BookmarkPromptContainer] 用户已确认收藏或永久关闭提示，不显示");
+      return;
+    }
+    
+    // 只有在用户未确认收藏和未永久关闭提示的情况下才订阅事件
     console.log("[BookmarkPromptContainer] 订阅SHOW_BOOKMARK_PROMPT事件");
     const unsubscribe = eventBus.subscribe(EVENTS.SHOW_BOOKMARK_PROMPT, handleShowPrompt);
     
-    // 尝试立即显示提示（调试用）
+    // 调试模式下立即显示提示
     const shouldShowImmediately = window.location.search.includes('debug=bookmark');
     if (shouldShowImmediately) {
       console.log("[BookmarkPromptContainer] 检测到debug参数，立即显示提示");
@@ -53,8 +73,19 @@ export default function BookmarkPromptContainer() {
       clearTimeout(reminderTimerRef.current);
     }
     
-    // 减少再次显示的等待时间为30秒
+    // 30秒后再次提示
     reminderTimerRef.current = setTimeout(() => {
+      // 再次检查用户是否已确认收藏或永久关闭了提示
+      if (typeof window !== "undefined") {
+        const userConfirmedBookmarked = localStorage.getItem("user-confirmed-bookmarked");
+        const permanentlyClosed = localStorage.getItem("bookmark-prompted-permanent");
+        
+        if (userConfirmedBookmarked === "true" || permanentlyClosed === "true") {
+          console.log("[BookmarkPromptContainer] 用户已确认收藏或永久关闭提示，不再次显示");
+          return;
+        }
+      }
+      
       console.log("[BookmarkPromptContainer] 30秒已到，再次显示收藏提示");
       setIsVisible(true);
     }, 30000); // 30秒后再次提示

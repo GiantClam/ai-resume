@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import PageDwellTimeListener from "./page-dwell-time-listener";
-import BookmarkPromptContainer from "./bookmark-prompt-container";
+// BookmarkPromptContainer import removed as it's now handled by BookmarkProvider
 import eventBus, { EVENTS } from "@/lib/utils/event-bus";
 
 export default function ClientComponentsWrapper() {
@@ -19,7 +19,7 @@ export default function ClientComponentsWrapper() {
       return "已触发收藏提示显示";
     };
     
-    // 如果URL包含调试参数，立即显示提示
+    // 仅在URL包含调试参数时显示提示
     if (window.location.search.includes('show-bookmark')) {
       console.log("[ClientComponentsWrapper] 检测到调试参数，立即显示收藏提示");
       setTimeout(() => {
@@ -27,21 +27,13 @@ export default function ClientComponentsWrapper() {
       }, 1000);
     }
     
-    // 30秒后尝试强制显示提示（确保收藏功能在任何情况下都能展示）
-    const forceTimer = setTimeout(() => {
-      console.log("[ClientComponentsWrapper] 强制定时器触发，显示收藏提示");
-      eventBus.publish(EVENTS.SHOW_BOOKMARK_PROMPT);
-    }, 30000);
-    
-    return () => {
-      clearTimeout(forceTimer);
-    };
+    // 不再使用强制定时器
   }, []);
   
   return (
     <>
       <PageDwellTimeListener />
-      <BookmarkPromptContainer />
+      {/* BookmarkPromptContainer removed to avoid duplicate prompt rendering */}
     </>
   );
 }
