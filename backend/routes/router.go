@@ -1,13 +1,11 @@
 package routes
 
 import (
+	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/GiantClam/ai-resume/handlers"
-	"github.com/GiantClam/ai-resume/middleware"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,32 +14,47 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	// CORS配置 - 使用cors中间件允许所有源访问
-	config := cors.DefaultConfig()
+	// config := cors.DefaultConfig()
 
-	// 允许特定的源或所有源
-	corsOrigin := os.Getenv("CORS_ORIGIN")
-	if corsOrigin != "" {
-		config.AllowOrigins = []string{corsOrigin}
-	} else {
-		// 开发环境下允许常见的本地开发源
-		config.AllowOrigins = []string{
-			"http://localhost:3000",
-			"http://127.0.0.1:3000",
-			"http://localhost:8000",
-		}
-	}
+	// // 允许特定的源或所有源
+	// corsOrigin := os.Getenv("CORS_ORIGIN")
+	// if corsOrigin != "" {
+	// 	config.AllowOrigins = []string{corsOrigin}
+	// } else {
+	// 	// 开发环境下允许常见的本地开发源
+	// 	config.AllowOrigins = []string{
+	// 		"http://localhost:3000",
+	// 		"http://127.0.0.1:3000",
+	// 		"http://localhost:8000",
+	// 	}
+	// }
 
-	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{
-		"Origin",
-		"Content-Type",
-		"Content-Length",
-		"Accept-Encoding",
-		"X-CSRF-Token",
-		"Authorization",
-	}
-	config.AllowCredentials = true
-	r.Use(cors.New(config))
+	// config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	// config.AllowHeaders = []string{
+	// 	"Origin",
+	// 	"Content-Type",
+	// 	"Content-Length",
+	// 	"Accept-Encoding",
+	// 	"X-CSRF-Token",
+	// 	"Authorization",
+	// }
+	// config.AllowCredentials = true
+	// r.Use(cors.New(config))
+
+	r.Use(func(c *gin.Context) {
+		// 请求开始前记录
+		path := c.Request.URL.Path
+		clientIP := c.ClientIP()
+		method := c.Request.Method
+		log.Printf("收到请求[%s]: 路径=%s, IP=%s, 头=%v", method, path, clientIP, c.Request.Header)
+
+		// 执行下一个处理器
+		c.Next()
+
+		// 响应后记录
+		status := c.Writer.Status()
+		log.Printf("请求完成: 路径=%s, 状态=%d, 错误=%v", path, status, c.Errors)
+	})
 
 	// 用户认证API
 	r.POST("/api/auth/register", handlers.Register)
@@ -49,7 +62,7 @@ func SetupRouter() *gin.Engine {
 
 	// 需要认证的API
 	auth := r.Group("/api")
-	auth.Use(middleware.AuthMiddleware())
+	//auth.Use(middleware.Auth())
 	{
 		auth.GET("/user/profile", handlers.GetUserProfile)
 	}
