@@ -1,0 +1,37 @@
+FROM debian:bullseye-slim
+
+WORKDIR /app
+
+# 安装证书和必要的依赖
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    default-mysql-client \
+    hexdump \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非root用户
+RUN groupadd -r resumeai && useradd -r -g resumeai resumeai
+
+# 复制编译好的二进制文件
+COPY resumeai /app/
+COPY .env.production /app/.env
+
+# 复制入口点脚本和等待脚本
+COPY docker-entrypoint.sh /app/
+COPY wait-for-mysql.sh /app/
+
+# 创建必要的目录
+RUN mkdir -p /app/uploads /app/logs && \
+    chown -R resumeai:resumeai /app
+
+# 设置权限
+RUN chmod +x /app/resumeai /app/docker-entrypoint.sh /app/wait-for-mysql.sh
+
+# 切换到非root用户
+USER resumeai
+
+# 暴露端口
+EXPOSE 8180
+
+# 设置入口点为docker-entrypoint.sh
+ENTRYPOINT ["/app/docker-entrypoint.sh"] 

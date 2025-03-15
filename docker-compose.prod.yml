@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  resumeai:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: resumeai
+    restart: always
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./google-credentials.json:/app/google-credentials.json
+    environment:
+      - GIN_MODE=release
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/google-credentials.json
+      - HTTP_PROXY=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - NO_PROXY=${NO_PROXY}
+      # 数据库配置环境变量
+      - DB_TYPE=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=resumeai
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+      - DB_NAME=resumeai
+      - DB_DRIVER=mysql
+      - DB_CHARSET=utf8mb4
+    networks:
+      - resumeai-net
+    depends_on:
+      - mysql
+  
+  mysql:
+    image: mysql:8.0
+    container_name: resumeai-mysql
+    restart: always
+    ports:
+      - "3307:3306"  # 避免与主机可能的MySQL冲突
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=resumeai
+      - MYSQL_USER=resumeai
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - resumeai-net
+
+networks:
+  resumeai-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local 

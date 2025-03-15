@@ -79,7 +79,7 @@ func InitDB() (*gorm.DB, error) {
 			parseTime := "True"
 			loc := "Local"
 
-			dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=%s&loc=%s&auth=native",
+			dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=%s&loc=%s",
 				user, password, host, port, dbname, charset, parseTime, loc)
 
 			db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})

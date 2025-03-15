@@ -18,7 +18,7 @@ const (
 // User 用户模型
 type User struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	Email     string         `gorm:"uniqueIndex;not null" json:"email"`
+	Email     string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"email"`
 	Password  string         `gorm:"size:255" json:"-"` // 不在JSON响应中返回密码
 	Name      string         `gorm:"size:100" json:"name"`
 	Avatar    string         `gorm:"size:255" json:"avatar"`
