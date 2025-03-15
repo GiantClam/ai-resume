@@ -38,6 +38,9 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /build/reumeai .
 
+# Copy environment configuration
+COPY .env.production .env
+
 # Copy any additional required files (if needed)
 # COPY configs/ configs/
 

@@ -133,33 +133,19 @@ func ScreenResumes(c *gin.Context) {
 		cleanedResponse := services.CleanMarkdownCodeBlock(response)
 		log.Printf("简历 %s 分析完成，响应长度: %d字节", file.Filename, len(cleanedResponse))
 
+		// 确保JSON格式完整
+		cleanedResponse = services.EnsureCompleteJSON(cleanedResponse)
+
 		// 解析当前简历的AI响应
 		var screeningResult models.ScreeningResponse
 		if err := json.Unmarshal([]byte(cleanedResponse), &screeningResult); err != nil {
 			log.Printf("解析简历 %s 的响应失败: %v", file.Filename, err)
-
-			// 尝试修复JSON格式
-			if len(cleanedResponse) > 0 {
-				fixedJson := services.TryFixJsonFormat(cleanedResponse)
-				if err := json.Unmarshal([]byte(fixedJson), &screeningResult); err != nil {
-					log.Printf("尝试修复后仍解析失败: %v", err)
-					// 将该简历标记为失败，但继续处理其他简历
-					allResults.Failed = append(allResults.Failed, models.ResumeResult{
-						Name:   file.Filename,
-						Reason: "简历解析失败",
-					})
-					continue
-				} else {
-					log.Printf("JSON修复成功，继续处理简历 %s", file.Filename)
-				}
-			} else {
-				// 将该简历标记为失败，但继续处理其他简历
-				allResults.Failed = append(allResults.Failed, models.ResumeResult{
-					Name:   file.Filename,
-					Reason: "简历解析失败",
-				})
-				continue
-			}
+			// 将该简历标记为失败，但继续处理其他简历
+			allResults.Failed = append(allResults.Failed, models.ResumeResult{
+				Name:   file.Filename,
+				Reason: "简历解析失败",
+			})
+			continue
 		}
 
 		// 确保返回的结果使用正确的文件名

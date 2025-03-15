@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -21,6 +22,13 @@ func InitDB() (*gorm.DB, error) {
 	var err error
 
 	once.Do(func() {
+		// 判断使用哪种数据库
+		dbType := os.Getenv("DB_TYPE")
+		if dbType == "" {
+			// 默认使用PostgreSQL
+			dbType = "postgres"
+		}
+
 		host := os.Getenv("DB_HOST")
 		if host == "" {
 			host = "localhost"
@@ -28,12 +36,20 @@ func InitDB() (*gorm.DB, error) {
 
 		port := os.Getenv("DB_PORT")
 		if port == "" {
-			port = "5432"
+			if dbType == "postgres" {
+				port = "5432"
+			} else {
+				port = "3306"
+			}
 		}
 
 		user := os.Getenv("DB_USER")
 		if user == "" {
-			user = "postgres"
+			if dbType == "postgres" {
+				user = "postgres"
+			} else {
+				user = "root"
+			}
 		}
 
 		password := os.Getenv("DB_PASSWORD")
@@ -42,15 +58,33 @@ func InitDB() (*gorm.DB, error) {
 			dbname = "ai_resume"
 		}
 
-		sslmode := os.Getenv("DB_SSLMODE")
-		if sslmode == "" {
-			sslmode = "disable"
+		// 根据数据库类型选择连接方式
+		if dbType == "postgres" {
+			sslmode := os.Getenv("DB_SSLMODE")
+			if sslmode == "" {
+				sslmode = "disable"
+			}
+
+			dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+				host, port, user, password, dbname, sslmode)
+
+			db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		} else {
+			// MySQL 连接
+			charset := os.Getenv("DB_CHARSET")
+			if charset == "" {
+				charset = "utf8mb4"
+			}
+
+			parseTime := "True"
+			loc := "Local"
+
+			dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=%s&loc=%s&auth=native",
+				user, password, host, port, dbname, charset, parseTime, loc)
+
+			db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 		}
 
-		dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-			host, port, user, password, dbname, sslmode)
-
-		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 		if err != nil {
 			log.Printf("连接数据库失败: %v", err)
 			return
@@ -68,7 +102,7 @@ func InitDB() (*gorm.DB, error) {
 		sqlDB.SetMaxOpenConns(100)
 		sqlDB.SetConnMaxLifetime(time.Hour)
 
-		log.Println("成功连接到数据库")
+		log.Printf("成功连接到 %s 数据库", dbType)
 	})
 
 	return db, err

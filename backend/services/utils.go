@@ -1,21 +1,46 @@
 package services
 
 import (
+	"log"
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/GiantClam/ai-resume/utils"
 )
 
 // CleanMarkdownCodeBlock 从Markdown代码块中提取纯JSON内容
 func CleanMarkdownCodeBlock(content string) string {
-	// 移除开始的代码块标记
-	content = regexp.MustCompile("^```(json)?\\s*").ReplaceAllString(content, "")
+	// 记录原始内容的长度以进行调试
+	originalLength := len(content)
 
-	// 移除结束的代码块标记
-	content = regexp.MustCompile("```\\s*$").ReplaceAllString(content, "")
+	// 打印前100个字符，用于调试
+	previewLength := utils.Min(100, originalLength)
+	log.Printf("[DEBUG] 原始内容前%d个字符: %s", previewLength, content[:previewLength])
+
+	// 更完善的正则表达式，匹配可能出现的各种代码块格式
+	// 移除开始的代码块标记，包括可能的空格和换行
+	startPattern := `(?s)^[\s\n]*` + "```" + `(?:json)?[\s\n]*`
+	content = regexp.MustCompile(startPattern).ReplaceAllString(content, "")
+
+	// 移除结束的代码块标记，包括可能的空格和换行
+	endPattern := `(?s)[\s\n]*` + "```" + `[\s\n]*$`
+	content = regexp.MustCompile(endPattern).ReplaceAllString(content, "")
 
 	// 去除前后空白
-	return strings.TrimSpace(content)
+	content = strings.TrimSpace(content)
+
+	// 记录清理后内容的长度
+	cleanedLength := len(content)
+	log.Printf("[DEBUG] CleanMarkdownCodeBlock: 原始长度=%d, 清理后长度=%d", originalLength, cleanedLength)
+
+	// 如果清理后内容为空，记录警告
+	if cleanedLength == 0 {
+		log.Printf("[WARN] CleanMarkdownCodeBlock: 清理后内容为空")
+		return "{}"
+	}
+
+	return content
 }
 
 // SanitizeUTF8 清理字符串中的无效UTF-8字符

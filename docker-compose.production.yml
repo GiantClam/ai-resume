@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  frontend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8180
+    depends_on:
+      - backend
+
+  backend:
+    build: 
+      context: ./backend
+    ports:
+      - "8180:8180"
+    environment:
+      - CORS_ORIGIN=http://localhost:3000
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION}
+      - PORT=8180
+      - GIN_MODE=release
+    # 生产环境下一般不需要挂载本地代码目录
+    volumes:
+      - ./backend/uploads:/app/uploads 

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"cloud.google.com/go/vertexai/genai"
 	"github.com/GiantClam/ai-resume/models"
@@ -60,7 +61,7 @@ func GenerateInterviewQuestions(c *gin.Context) {
 	}
 
 	// 清理文件内容中的无效UTF-8字符
-	resumeContent := services.SanitizeUTF8(string(content))
+	resumeContent := sanitizeUTF8(string(content))
 
 	// 调用Vertex AI生成面试题
 	vertexClient := services.NewVertexAIClient()
@@ -87,28 +88,15 @@ func GenerateInterviewQuestions(c *gin.Context) {
 		log.Printf("清理后的后100个字符与前100个字符相同（响应过短）")
 	}
 
+	// 确保JSON格式完整
+	cleanedResponse = services.EnsureCompleteJSON(cleanedResponse)
+
 	// 解析AI响应
 	var questionsResult models.QuestionsResponse
 	if err := json.Unmarshal([]byte(cleanedResponse), &questionsResult); err != nil {
 		log.Printf("解析响应失败: %v, 错误类型: %T", err, err)
-
-		// 检查是否有问题的字符
-		if len(cleanedResponse) > 0 {
-			// 尝试手动解析，查看是否是简单格式问题
-			fixedJson := services.TryFixJsonFormat(cleanedResponse)
-			log.Printf("尝试修复JSON格式后: %s", fixedJson[:utils.Min(100, len(fixedJson))])
-
-			if err := json.Unmarshal([]byte(fixedJson), &questionsResult); err != nil {
-				log.Printf("尝试修复后仍解析失败: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "无法解析AI响应"})
-				return
-			} else {
-				log.Printf("JSON修复成功，继续处理")
-			}
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "无法解析AI响应"})
-			return
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "无法解析AI响应"})
+		return
 	}
 
 	// 返回完整的问题列表
@@ -158,28 +146,15 @@ func SummarizeInterview(c *gin.Context) {
 		log.Printf("清理后的后100个字符与前100个字符相同（响应过短）")
 	}
 
+	// 确保JSON格式完整
+	cleanedResponse = services.EnsureCompleteJSON(cleanedResponse)
+
 	// 解析AI响应
 	var summaryResult models.SummaryResponse
 	if err := json.Unmarshal([]byte(cleanedResponse), &summaryResult); err != nil {
 		log.Printf("解析响应失败: %v, 错误类型: %T", err, err)
-
-		// 检查是否有问题的字符
-		if len(cleanedResponse) > 0 {
-			// 尝试手动解析，查看是否是简单格式问题
-			fixedJson := services.TryFixJsonFormat(cleanedResponse)
-			log.Printf("尝试修复JSON格式后: %s", fixedJson[:utils.Min(100, len(fixedJson))])
-
-			if err := json.Unmarshal([]byte(fixedJson), &summaryResult); err != nil {
-				log.Printf("尝试修复后仍解析失败: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "无法解析AI响应"})
-				return
-			} else {
-				log.Printf("JSON修复成功，继续处理")
-			}
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "无法解析AI响应"})
-			return
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "无法解析AI响应"})
+		return
 	}
 
 	log.Printf("返回给客户端的数据: %+v", summaryResult)
@@ -303,7 +278,7 @@ func StreamGenerateInterviewQuestions(c *gin.Context) {
 	}
 
 	// 清理文件内容中的无效UTF-8字符
-	resumeContent := services.SanitizeUTF8(string(content))
+	resumeContent := sanitizeUTF8(string(content))
 
 	// 设置响应头，指定为SSE
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
@@ -385,18 +360,16 @@ func StreamGenerateInterviewQuestions(c *gin.Context) {
 	finalResponse := fullResponse.String()
 	cleanedResponse := services.CleanMarkdownCodeBlock(finalResponse)
 
+	// 确保JSON格式完整
+	cleanedResponse = services.EnsureCompleteJSON(cleanedResponse)
+
 	// 解析JSON响应
 	var questionsResult models.QuestionsResponse
 	if err := json.Unmarshal([]byte(cleanedResponse), &questionsResult); err != nil {
 		log.Printf("解析响应失败: %v", err)
-
-		// 尝试修复JSON
-		fixedJson := services.TryFixJsonFormat(cleanedResponse)
-		if err := json.Unmarshal([]byte(fixedJson), &questionsResult); err != nil {
-			fmt.Fprintf(c.Writer, "data: %s\n\n", `{"status":"error","message":"无法解析AI生成的问题"}`)
-			c.Writer.Flush()
-			return
-		}
+		fmt.Fprintf(c.Writer, "data: %s\n\n", `{"status":"error","message":"无法解析AI生成的问题"}`)
+		c.Writer.Flush()
+		return
 	}
 
 	// 发送完成信号和最终的问题列表
@@ -406,4 +379,26 @@ func StreamGenerateInterviewQuestions(c *gin.Context) {
 	})
 	fmt.Fprintf(c.Writer, "data: %s\n\n", string(finalData))
 	c.Writer.Flush()
+}
+
+// 清理UTF-8字符串
+func sanitizeUTF8(s string) string {
+	if utf8.ValidString(s) {
+		return s
+	}
+
+	// 创建一个新的字符串构建器
+	var builder strings.Builder
+	builder.Grow(len(s))
+
+	// 遍历字符串，只保留有效的UTF-8字符
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r != utf8.RuneError || size == 1 {
+			builder.WriteRune(r)
+		}
+		i += size
+	}
+
+	return builder.String()
 }
