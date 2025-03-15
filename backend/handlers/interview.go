@@ -180,46 +180,29 @@ func handleStreamRequest(c *gin.Context, sessionId string) {
 		cancel()
 	}()
 
-	// 使用ctx在模拟延迟期间检查取消
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
 	// 通知客户端连接成功
 	fmt.Fprintf(c.Writer, "data: %s\n\n", `{"status":"connected","message":"SSE连接已建立"}`)
 	c.Writer.Flush()
 
-	// 这里应该实现从缓存或数据库中读取对应会话的数据
-	// 为了简化，我们直接发送一个模拟的问题集
-	mockQuestions := []models.Question{
-		{
-			Question: "您能描述一下您在上一个项目中的角色和贡献吗？",
-			Answer:   "候选人应该清晰描述自己的职责、任务和成就，突出关键贡献和解决的问题。",
-			Category: "工作经历",
-		},
-		{
-			Question: "您如何处理项目中的紧急情况或突发问题？",
-			Answer:   "理想回答应包含问题识别、优先级确定、解决方案制定和执行的清晰步骤。",
-			Category: "问题解决能力",
-		},
-	}
+	// 从数据库或缓存获取会话数据
+	// TODO: 实现从缓存或数据库读取会话数据
+	log.Printf("获取会话 %s 的数据", sessionId)
 
-	// 模拟延迟和流式传输
-	fmt.Fprintf(c.Writer, "data: %s\n\n", `{"status":"generating","message":"正在生成问题..."}`)
+	// 获取上次生成的内容
+	// TODO: 实现从缓存或数据库获取完整内容
+
+	// 通知客户端已找到会话
+	fmt.Fprintf(c.Writer, "data: %s\n\n", `{"status":"session_found","message":"找到会话数据"}`)
 	c.Writer.Flush()
-	time.Sleep(1 * time.Second)
 
-	// 逐个发送问题，模拟实时生成
-	for _, q := range mockQuestions {
-		qJSON, _ := json.Marshal(q)
-		fmt.Fprintf(c.Writer, "data: %s\n\n", fmt.Sprintf(`{"status":"chunk","content":%q}`, string(qJSON)))
-		c.Writer.Flush()
-		time.Sleep(500 * time.Millisecond)
-	}
+	// 获取会话对应的问题列表
+	var questionsResult models.QuestionsResponse
+	// TODO: 从数据库获取问题列表
 
-	// 发送完成信号
+	// 发送完成信号和最终的问题列表
 	finalData, _ := json.Marshal(gin.H{
 		"status":    "complete",
-		"questions": mockQuestions,
+		"questions": questionsResult.Questions,
 	})
 	fmt.Fprintf(c.Writer, "data: %s\n\n", string(finalData))
 	c.Writer.Flush()
